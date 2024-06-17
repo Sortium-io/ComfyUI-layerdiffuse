@@ -2,9 +2,56 @@ import torch.nn as nn
 import torch
 import cv2
 import numpy as np
+import logging
+import sys
 
 from tqdm import tqdm
 from typing import Optional, Tuple
+from diffusers import logging as diffusers_logging
+
+# Custom filter to direct specific log levels to specific handlers
+class LevelFilter(logging.Filter):
+    def __init__(self, level):
+        self.level = level
+
+    def filter(self, record):
+        return record.levelno == self.level
+
+# Get the diffusers logger
+logger = diffusers_logging.get_logger()
+
+# Remove all current handlers
+for handler in logger.handlers[:]:
+    logger.removeHandler(handler)
+
+# Set the logging level
+logging_level = logging.INFO
+logger.setLevel(logging_level)
+
+# Create handlers for stdout and stderr
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setLevel(logging.INFO)
+stdout_handler.addFilter(LevelFilter(logging.INFO))
+stdout_handler.addFilter(LevelFilter(logging.WARNING))
+
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setLevel(logging.ERROR)
+stderr_handler.addFilter(LevelFilter(logging.ERROR))
+stderr_handler.addFilter(LevelFilter(logging.CRITICAL))
+
+# Set formatters
+formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+stdout_handler.setFormatter(formatter)
+stderr_handler.setFormatter(formatter)
+
+# Add handlers to the logger
+logger.addHandler(stdout_handler)
+logger.addHandler(stderr_handler)
+
+# Redirect warnings to the logging system
+logging.captureWarnings(True)
+warnings_logger = logging.getLogger("py.warnings")
+
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.modeling_utils import ModelMixin
 import importlib.metadata
